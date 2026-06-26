@@ -1,68 +1,238 @@
-let draggedIndex = null;
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>UiPath Timeline</title>
+
+<style>
+body {
+  margin:0;
+  font-family:"Segoe UI";
+  background:#f3f6fb;
+}
+
+/* HEADER */
+.header {
+  padding:20px 30px;
+  background:#1f2937;
+  color:white;
+}
+
+/* TIMELINE */
+.container {
+  display:flex;
+  gap:20px;
+  overflow-x:auto;
+  padding:30px;
+}
+
+.card {
+  min-width:260px;
+  background:white;
+  padding:18px;
+  border-radius:16px;
+  box-shadow:0 8px 20px rgba(0,0,0,0.08);
+  cursor:grab;
+}
+
+.card:hover {
+  transform:translateY(-5px);
+}
+
+/* DETAILS */
+.details {
+  margin:20px 30px;
+  padding:20px;
+  background:white;
+  border-radius:16px;
+}
+
+/* NODES */
+.nodes {
+  display:flex;
+  gap:15px;
+  padding:0 30px;
+}
+
+.node {
+  flex:1;
+  padding:12px;
+  background:white;
+  text-align:center;
+  border-radius:20px;
+  cursor:pointer;
+}
+
+.active {
+  background:#16a34a;
+  color:white;
+}
+</style>
+</head>
+
+<body>
+
+<div class="header">
+  <h1>UiPath Timeline 2026</h1>
+</div>
+
+<div id="timeline" class="container"></div>
+<div id="details"></div>
+
+<h2 style="padding-left:30px">Architecture Flow</h2>
+<div id="nodes" class="nodes"></div>
+
+<canvas id="flow"></canvas>
+
+<script>
+
+// ===== DATA =====
+const base = ["July","August","September","Oct–Nov","Dec"];
+
+let data = [
+{id:1,title:"Core Setup",details:"Platform setup"},
+{id:2,title:"Jira Integration",details:"Tracking & defects"},
+{id:3,title:"Automation",details:"Studio rollout"},
+{id:4,title:"SAP SF",details:"SuccessFactors"},
+{id:5,title:"S/4HANA",details:"Enterprise scale"}
+];
+
+const nodes = [
+  "Test Manager",
+  "Orchestrator",
+  "Jira",
+  "Confluence",
+  "Studio",
+  "SAP"
+];
+
+let active = [];
+let dragFrom = null;
+
+// ===== TIMELINE =====
+function slots(){
+  return base.map((m,i)=>
+    i===4 ? `Dec 2026 → 2027+` : `${m} 2026`
+  );
+}
 
 function render(){
   const el = document.getElementById("timeline");
   el.innerHTML = "";
   const s = slots();
 
-  data.forEach((e, i) => {
-    const d = document.createElement("div");
-    d.className = "card";
-    d.draggable = true;
-    d.dataset.index = i;
+  data.forEach((e,i)=>{
+    const d=document.createElement("div");
+    d.className="card";
+    d.draggable=true;
 
-    d.innerHTML = `
+    d.innerHTML=`
       <b style="color:#3b82f6">${s[i]}</b>
       <h3>${e.title}</h3>
       <p>${e.details}</p>
     `;
 
-    d.onclick = () => showDetails(i);
+    // click
+    d.onclick=()=>showDetails(i);
 
-    // ✅ Drag start
-    d.ondragstart = () => {
-      draggedIndex = i;
-      d.classList.add("dragging");
-    };
+    // drag
+    d.ondragstart=()=>dragFrom=i;
+    d.ondragover=(e)=>e.preventDefault();
 
-    d.ondragend = () => {
-      d.classList.remove("dragging");
+    d.ondrop=()=>{
+      if(dragFrom===null) return;
+
+      const item=data.splice(dragFrom,1)[0];
+      data.splice(i,0,item);
+
+      dragFrom=null;
+      render();
     };
 
     el.appendChild(d);
   });
-
-  // ✅ Handle drop on container (not card!)
-  el.ondragover = (e) => {
-    e.preventDefault();
-  };
-
-  el.ondrop = (e) => {
-    e.preventDefault();
-
-    const afterElement = getDragAfterElement(el, e.clientX);
-    const newIndex = afterElement
-      ? parseInt(afterElement.dataset.index)
-      : data.length;
-
-    const item = data.splice(draggedIndex, 1)[0];
-    data.splice(newIndex, 0, item);
-
-    render();
-  };
 }
 
-function getDragAfterElement(container, x){
-  const elements = [...container.querySelectorAll(".card:not(.dragging)")];
+// ===== DETAILS =====
+function showDetails(i){
+  const s = slots();
 
-  return elements.reduce((closest, child) => {
-    const box = child.getBoundingClientRect();
-    const offset = x - box.left - box.width / 2;
+  document.getElementById("details").innerHTML=`
+    <div class="details">
+      <h2>${data[i].title}</h2>
+      <b>${s[i]}</b>
+      <p>${data[i].details}</p>
+      <button onclick="clearDetails()">Close</button>
+    </div>
+  `;
+}
 
-    if (offset < 0 && offset > closest.offset) {
-      return { offset: offset, element: child };
-    } else {
-      return closest;
+function clearDetails(){
+  document.getElementById("details").innerHTML="";
+}
+
+// ===== NODES =====
+function toggle(n){
+  active.includes(n)
+    ? active=active.filter(x=>x!==n)
+    : active.push(n);
+
+  drawNodes();
+}
+
+function drawNodes(){
+  const el=document.getElementById("nodes");
+  el.innerHTML="";
+
+  nodes.forEach(n=>{
+    const d=document.createElement("div");
+    d.className="node "+(active.includes(n)?"active":"");
+    d.innerText=n;
+    d.onclick=()=>toggle(n);
+    el.appendChild(d);
+  });
+}
+
+// ===== FLOW =====
+const c=document.getElementById("flow");
+const ctx=c.getContext("2d");
+
+function resize(){
+  c.width=window.innerWidth-60;
+  c.height=80;
+}
+resize();
+window.onresize=resize;
+
+let off=0;
+
+function animate(){
+  ctx.clearRect(0,0,c.width,c.height);
+
+  for(let i=0;i<nodes.length-1;i++){
+    if(active.includes(nodes[i]) && active.includes(nodes[i+1])){
+
+      ctx.setLineDash([6,6]);
+      ctx.lineDashOffset=-off;
+
+      ctx.beginPath();
+      ctx.moveTo((i/(nodes.length-1))*c.width,40);
+      ctx.lineTo(((i+1)/(nodes.length-1))*c.width,40);
+
+      ctx.strokeStyle="#3b82f6";
+      ctx.stroke();
     }
-  }, { offset: Number.NEGATIVE_INFINITY }).element;
+  }
+
+  off++;
+  requestAnimationFrame(animate);
 }
+
+animate();
+render();
+drawNodes();
+
+</script>
+
+</body>
+</html>
