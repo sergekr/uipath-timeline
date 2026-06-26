@@ -1,149 +1,208 @@
-import React, { useState } from "react";
-import { motion, Reorder } from "framer-motion";
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>UiPath Timeline</title>
 
-const baseSlots = ["July","August","September","Oct–Nov","Dec"];
+<style>
+body {
+  font-family: Arial;
+  background: #f6f8fb;
+  padding: 30px;
+}
 
-const stageNodeMap = {
-  1: ["Test Manager","Orchestrator"],
-  2: ["Test Manager","Jira"],
-  3: ["UiPath Studio","Orchestrator"],
-  4: ["SAP Systems","UiPath Studio"],
-  5: ["SAP Systems","Orchestrator"]
-};
+.container {
+  display: flex;
+  gap: 20px;
+  overflow-x: auto;
+}
 
-const nodesList = ["Test Manager","Orchestrator","Jira","UiPath Studio","SAP Systems"];
+.card {
+  width: 260px;
+  background: #fff;
+  padding: 16px;
+  border-radius: 14px;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.12);
+  cursor: grab;
+}
 
-export default function TimelineApp() {
-  const [year, setYear] = useState(2026);
+.node {
+  padding: 10px;
+  border-radius: 8px;
+  min-width: 120px;
+  text-align: center;
+  box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+  cursor: pointer;
+}
 
-  const timelineSlots = baseSlots.map((m, i) => {
-    if (i === 4) {
-      return `Dec ${year} → ${year + 1}+`;
-    }
-    return `${m} ${year}`;
-  });
+.active {
+  background: #16a34a;
+  color: white;
+}
+</style>
+</head>
 
-  const [events, setEvents] = useState([
-    { id: 1, title: "Stage 1: Core Setup", summary: "UiPath SaaS + migration baseline", details: "Setup cloud, SSO, Test Manager, Orchestrator." },
-    { id: 2, title: "Stage 2: Jira Integration", summary: "Defects + traceability", details: "Integrate Jira with Test Manager." },
-    { id: 3, title: "Stage 3: Automation", summary: "Studio + automation rollout", details: "Install Studio, build automation." },
-    { id: 4, title: "Stage 4: SAP SF", summary: "SuccessFactors automation", details: "Integrate SAP SuccessFactors." },
-    { id: 5, title: "Stage 5: S/4HANA", summary: "Enterprise automation", details: "Extend into S/4HANA." }
-  ]);
+<body>
 
-  const [selected, setSelected] = useState(null);
-  const [manualOverride, setManualOverride] = useState({});
+<h1 id="title">UiPath Transformation Timeline 2026</h1>
 
-  const autoNodes = selected ? stageNodeMap[selected.id] || [] : [];
+<button onclick="year--">-</button>
+<span id="year">2026</span>
+<button onclick="year++">+</button>
 
-  const toggleNode = (node) => {
-    setManualOverride((prev) => {
-      const next = { ...prev };
-      const autoActive = autoNodes.includes(node);
-      if (next[node] === undefined) {
-        next[node] = !autoActive;
-      } else {
-        next[node] = !next[node];
-        if (next[node] === autoActive) delete next[node];
-      }
-      return next;
-    });
-  };
+<div id="timeline" class="container"></div>
 
-  const isActive = (node) => {
-    if (manualOverride[node] !== undefined) return manualOverride[node];
-    return autoNodes.includes(node);
-  };
+<div id="details"></div>
 
-  return (
-    <div style={{ padding: 30, fontFamily: "Arial", background: "#f6f8fb", minHeight: "100vh" }}>
+<h2>Architecture Flow</h2>
+<div id="nodes" style="display:flex;justify-content:space-between"></div>
 
-      {/* HEADER */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <h1>UiPath Transformation Timeline {year}</h1>
-        <div>
-          <button onClick={() => setYear(y => y - 1)}>-</button>
-          <span style={{ margin: "0 10px" }}>{year}</span>
-          <button onClick={() => setYear(y => y + 1)}>+</button>
-        </div>
-      </div>
+<canvas id="flow"></canvas>
 
-      {/* Timeline */}
-      <div style={{ display: "flex", gap: 20, overflowX: "auto", marginTop: 20 }}>
-        <Reorder.Group axis="x" values={events} onReorder={setEvents} style={{ display: "flex", gap: 20 }}>
-          {events.map((event, index) => (
-            <Reorder.Item key={event.id} value={event} whileDrag={{ scale: 1.1 }}>
-              <div
-                onClick={() => setSelected(event)}
-                style={{ width: 260, background: "white", padding: 16, borderRadius: 14, boxShadow: "0 6px 18px rgba(0,0,0,0.12)", cursor: "grab" }}
-              >
-                <div style={{ color: "#3b82f6", fontWeight: "bold" }}>{timelineSlots[index]}</div>
-                <h3>{event.title}</h3>
-                <p>{event.summary}</p>
-              </div>
-            </Reorder.Item>
-          ))}
-        </Reorder.Group>
-      </div>
+<script>
+let year = 2026;
 
-      {/* Details Panel */}
-      {selected && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          style={{ marginTop: 24, background: "white", padding: 24, borderRadius: 16, boxShadow: "0 10px 25px rgba(0,0,0,0.15)" }}
-        >
-          <h2>{selected.title}</h2>
-          <p style={{ color: "#3b82f6", fontWeight: "bold" }}>{timelineSlots[events.findIndex(e => e.id === selected.id)]}</p>
-          <p style={{ marginTop: 10 }}>{selected.details}</p>
-          <button onClick={() => setSelected(null)}>Close</button>
-        </motion.div>
-      )}
+const base = ["July","August","September","Oct–Nov","Dec"];
 
-      {/* Architecture */}
-      <div style={{ marginTop: 40 }}>
-        <h2>Architecture Flow</h2>
+const nodes = [
+  "Test Manager",
+  "Orchestrator",
+  "Jira",
+  "Confluence",
+  "UiPath Studio",
+  "SAP Systems"
+];
 
-        <div style={{ display: "flex", justifyContent: "space-between" }}>
-          {nodesList.map((node, i) => (
-            <div
-              key={i}
-              onClick={() => toggleNode(node)}
-              style={{
-                padding: "10px",
-                background: isActive(node) ? "#16a34a" : "white",
-                color: isActive(node) ? "white" : "black",
-                borderRadius: 8,
-                minWidth: 120,
-                textAlign: "center",
-                boxShadow: "0 3px 10px rgba(0,0,0,0.1)",
-                cursor: "pointer"
-              }}
-            >
-              {node}
-            </div>
-          ))}
-        </div>
+let active = [];
+let selected = null;
 
-        {/* Responsive animated flow */}
-        <svg width="100%" height="80">
-          {[0,1,2,3].map((i) => (
-            <motion.line
-              key={i}
-              x1={`${(i * 25) + 5}%`}
-              y1="40"
-              x2={`${(i * 25) + 30}%`}
-              y2="40"
-              stroke="#3b82f6"
-              strokeWidth="2"
-              strokeDasharray="6,6"
-              initial={{ strokeDashoffset: 10 }}
-              animate={{ strokeDashoffset: 0 }}
-              transition={{ repeat: Infinity, duration: 1 }}
-            />
-          ))}
-        </svg>
-      </div>
-    </div>
+let data = [
+  {id:1,title:"Stage 1",details:"Core setup & platform"},
+  {id:2,title:"Stage 2",details:"Jira integration"},
+  {id:3,title:"Stage 3",details:"Automation rollout"},
+  {id:4,title:"Stage 4",details:"SAP SF automation"},
+  {id:5,title:"Stage 5",details:"S/4HANA expansion"}
+];
+
+function slots() {
+  return base.map((m,i) =>
+    i===4 ? `Dec ${year} → ${year+1}+` : `${m} ${year}`
   );
 }
+
+function drawTimeline() {
+  const el = document.getElementById("timeline");
+  el.innerHTML = "";
+  const s = slots();
+
+  data.forEach((e,i) => {
+    const d = document.createElement("div");
+    d.className = "card";
+
+    d.innerHTML = `
+      <div style="color:#3b82f6;font-weight:bold">${s[i]}</div>
+      <h3>${e.title}</h3>
+      <p>${e.details}</p>
+    `;
+
+    d.onclick = () => {
+      selected = e;
+      showDetails(i);
+    };
+
+    el.appendChild(d);
+  });
+}
+
+function showDetails(index) {
+  const s = slots();
+  document.getElementById("details").innerHTML = `
+    <div style="margin-top:20px;background:white;padding:20px;border-radius:14px">
+      <h2>${data[index].title}</h2>
+      <b>${s[index]}</b>
+      <p>${data[index].details}</p>
+      <button onclick="clearDetails()">Close</button>
+    </div>
+  `;
+}
+
+function clearDetails(){
+  document.getElementById("details").innerHTML = "";
+}
+
+function toggle(node){
+  if(active.includes(node)){
+    active = active.filter(x=>x!==node);
+  } else {
+    active.push(node);
+  }
+  drawNodes();
+}
+
+function drawNodes(){
+  const el = document.getElementById("nodes");
+  el.innerHTML="";
+
+  nodes.forEach(n=>{
+    const d=document.createElement("div");
+    d.className="node "+(active.includes(n)?"active":"");
+    d.innerText=n;
+    d.onclick=()=>toggle(n);
+    el.appendChild(d);
+  });
+}
+
+function updateHeader(){
+  document.getElementById("year").innerText = year;
+  document.getElementById("title").innerText =
+    "UiPath Transformation Timeline " + year;
+}
+
+// canvas flow
+const c = document.getElementById("flow");
+const ctx = c.getContext("2d");
+
+function resize(){
+  c.width = window.innerWidth - 60;
+  c.height = 80;
+}
+resize();
+window.onresize = resize;
+
+let offset = 0;
+
+function animate(){
+  ctx.clearRect(0,0,c.width,c.height);
+
+  for(let i=0;i<nodes.length-1;i++){
+    if(active.includes(nodes[i]) && active.includes(nodes[i+1])){
+      ctx.setLineDash([6,6]);
+      ctx.lineDashOffset = -offset;
+
+      ctx.beginPath();
+      ctx.moveTo((i/(nodes.length-1))*c.width,40);
+      ctx.lineTo(((i+1)/(nodes.length-1))*c.width,40);
+      ctx.strokeStyle="#3b82f6";
+      ctx.stroke();
+    }
+  }
+
+  offset++;
+  requestAnimationFrame(animate);
+}
+
+animate();
+
+setInterval(()=>{
+  updateHeader();
+  drawTimeline();
+},500);
+
+drawTimeline();
+drawNodes();
+updateHeader();
+
+</script>
+
+</body>
+</html>
