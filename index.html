@@ -2,98 +2,49 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>UiPath Transformation Timeline</title>
+<title>UiPath Timeline</title>
 
 <style>
-body {
-  margin:0;
-  font-family: "Segoe UI", Arial;
-  background:#f3f6fb;
-}
+body { margin:0; font-family:"Segoe UI"; background:#f3f6fb; }
 
-/* HEADER */
 .header {
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  padding:20px 30px;
-  background:#1f2937;
-  color:white;
+  display:flex; justify-content:space-between; align-items:center;
+  padding:20px 30px; background:#1f2937; color:white;
 }
 
-.year-controls button {
-  margin:0 5px;
-  padding:6px 10px;
-  border:none;
-  border-radius:6px;
-  background:#3b82f6;
-  color:white;
-  cursor:pointer;
-}
-
-/* TIMELINE */
 .container {
-  display:flex;
-  gap:20px;
-  overflow-x:auto;
-  padding:30px;
+  display:flex; gap:20px; overflow-x:auto; padding:30px;
 }
 
 .card {
-  min-width:260px;
-  background:white;
-  padding:18px;
-  border-radius:16px;
-  box-shadow:0 8px 20px rgba(0,0,0,0.08);
-  transition:all 0.2s;
-  cursor:pointer;
+  min-width:260px; background:white; padding:18px;
+  border-radius:16px; box-shadow:0 8px 20px rgba(0,0,0,0.08);
+  cursor:grab; transition:.2s;
 }
 
-.card:hover {
-  transform:translateY(-5px);
+.card.dragging {
+  opacity:0.5;
 }
 
-/* DETAILS */
+.card:hover { transform:translateY(-5px); }
+
 .details {
-  margin:20px 30px;
-  padding:20px;
-  background:white;
-  border-radius:16px;
+  margin:20px 30px; padding:20px;
+  background:white; border-radius:16px;
   box-shadow:0 10px 30px rgba(0,0,0,0.1);
 }
 
-/* NODES */
-.nodes {
-  display:flex;
-  justify-content:space-between;
-  gap:15px;
-  padding:0 30px;
-}
+.nodes { display:flex; gap:15px; padding:0 30px; }
 
 .node {
-  flex:1;
-  text-align:center;
-  padding:12px;
-  border-radius:25px;
-  background:white;
+  flex:1; padding:12px; border-radius:25px;
+  background:white; text-align:center; cursor:pointer;
   box-shadow:0 4px 12px rgba(0,0,0,0.08);
-  cursor:pointer;
-  transition:all 0.2s;
-}
-
-.node:hover {
-  transform:scale(1.05);
 }
 
 .active {
-  background:#16a34a;
-  color:white;
-  box-shadow:0 0 15px rgba(22,163,74,0.6);
-}
-
-/* FLOW */
-canvas {
-  margin-top:10px;
+  background:#16a34a; color:white;
+  box-shadow:0 0 15px rgba(22,163,74,.6);
 }
 </style>
 </head>
@@ -101,12 +52,7 @@ canvas {
 <body>
 
 <div class="header">
-  <h1 id="title">UiPath Transformation Timeline 2026</h1>
-  <div class="year-controls">
-    <button onclick="year--">-</button>
-    <span id="year">2026</span>
-    <button onclick="year++">+</button>
-  </div>
+  <h1 id="title">UiPath Timeline 2026</h1>
 </div>
 
 <div id="timeline" class="container"></div>
@@ -114,138 +60,16 @@ canvas {
 
 <h2 style="padding-left:30px">Architecture Flow</h2>
 <div id="nodes" class="nodes"></div>
+
 <canvas id="flow"></canvas>
 
 <script>
+let year=2026;
 
-let year = 2026;
+const base=["July","August","September","Oct–Nov","Dec"];
 
-const base = ["July","August","September","Oct–Nov","Dec"];
-
-const nodes = [
-  "Test Manager",
-  "Orchestrator",
-  "Jira",
-  "Confluence",
-  "UiPath Studio",
-  "SAP Systems"
-];
-
-let active = [];
-let data = [
-{ id:1,title:"Core Setup",details:"Platform, SSO, Orchestrator" },
-{ id:2,title:"Jira Integration",details:"Defect tracking + traceability" },
-{ id:3,title:"Automation",details:"Studio rollout + bots" },
-{ id:4,title:"SAP SF",details:"SuccessFactors automation" },
-{ id:5,title:"S/4HANA",details:"Enterprise scaling" }
-];
-
-function slots(){
-  return base.map((m,i)=>i===4?`Dec ${year} → ${year+1}+`:`${m} ${year}`);
-}
-
-function drawTimeline(){
-  const el=document.getElementById("timeline");
-  el.innerHTML="";
-  const s=slots();
-
-  data.forEach((e,i)=>{
-    let d=document.createElement("div");
-    d.className="card";
-
-    d.innerHTML=`
-      <div style="color:#3b82f6;font-weight:bold">${s[i]}</div>
-      <h3>${e.title}</h3>
-      <p>${e.details}</p>
-    `;
-
-    d.onclick=()=>showDetails(i);
-    el.appendChild(d);
-  });
-}
-
-function showDetails(i){
-  const s=slots();
-  document.getElementById("details").innerHTML=`
-    <div class="details">
-      <h2>${data[i].title}</h2>
-      <b>${s[i]}</b>
-      <p>${data[i].details}</p>
-      <button onclick="clearDetails()">Close</button>
-    </div>`;
-}
-
-function clearDetails(){
-  document.getElementById("details").innerHTML="";
-}
-
-function toggle(n){
-  active.includes(n) ? active=active.filter(x=>x!==n) : active.push(n);
-  drawNodes();
-}
-
-function drawNodes(){
-  const el=document.getElementById("nodes");
-  el.innerHTML="";
-  nodes.forEach(n=>{
-    let d=document.createElement("div");
-    d.className="node "+(active.includes(n)?"active":"");
-    d.innerText=n;
-    d.onclick=()=>toggle(n);
-    el.appendChild(d);
-  });
-}
-
-function updateHeader(){
-  document.getElementById("year").innerText=year;
-  document.getElementById("title").innerText="UiPath Transformation Timeline "+year;
-}
-
-/* FLOW */
-const c=document.getElementById("flow");
-const ctx=c.getContext("2d");
-
-function resize(){
-  c.width=window.innerWidth-60;
-  c.height=80;
-}
-resize();
-window.onresize=resize;
-
-let off=0;
-
-function animate(){
-  ctx.clearRect(0,0,c.width,c.height);
-
-  for(let i=0;i<nodes.length-1;i++){
-    if(active.includes(nodes[i]) && active.includes(nodes[i+1])){
-      ctx.setLineDash([6,6]);
-      ctx.lineDashOffset=-off;
-      ctx.beginPath();
-      ctx.moveTo((i/(nodes.length-1))*c.width,40);
-      ctx.lineTo(((i+1)/(nodes.length-1))*c.width,40);
-      ctx.strokeStyle="#3b82f6";
-      ctx.lineWidth=2;
-      ctx.stroke();
-    }
-  }
-
-  off++;
-  requestAnimationFrame(animate);
-}
-
-animate();
-
-setInterval(()=>{
-  updateHeader();
-  drawTimeline();
-},500);
-
-drawTimeline();
-drawNodes();
-updateHeader();
-
-</script>
-
-</body>
-</html>
+let data=[
+{id:1,title:"Core Setup",details:"Platform + SSO"},
+{id:2,title:"Jira Integration",details:"Traceability"},
+{id:3,title:"Automation",details:"Studio rollout"},
+{id:4,title:"SAP SF",details:"SuccessFactors"},
