@@ -2,64 +2,122 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>UiPath Timeline</title>
+<title>UiPath Transformation Timeline</title>
 
 <style>
 body {
-  font-family: Arial;
-  background: #f6f8fb;
-  padding: 30px;
+  margin:0;
+  font-family: "Segoe UI", Arial;
+  background:#f3f6fb;
 }
 
+/* HEADER */
+.header {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:20px 30px;
+  background:#1f2937;
+  color:white;
+}
+
+.year-controls button {
+  margin:0 5px;
+  padding:6px 10px;
+  border:none;
+  border-radius:6px;
+  background:#3b82f6;
+  color:white;
+  cursor:pointer;
+}
+
+/* TIMELINE */
 .container {
-  display: flex;
-  gap: 20px;
-  overflow-x: auto;
+  display:flex;
+  gap:20px;
+  overflow-x:auto;
+  padding:30px;
 }
 
 .card {
-  width: 260px;
-  background: #fff;
-  padding: 16px;
-  border-radius: 14px;
-  box-shadow: 0 6px 18px rgba(0,0,0,0.12);
-  cursor: grab;
+  min-width:260px;
+  background:white;
+  padding:18px;
+  border-radius:16px;
+  box-shadow:0 8px 20px rgba(0,0,0,0.08);
+  transition:all 0.2s;
+  cursor:pointer;
+}
+
+.card:hover {
+  transform:translateY(-5px);
+}
+
+/* DETAILS */
+.details {
+  margin:20px 30px;
+  padding:20px;
+  background:white;
+  border-radius:16px;
+  box-shadow:0 10px 30px rgba(0,0,0,0.1);
+}
+
+/* NODES */
+.nodes {
+  display:flex;
+  justify-content:space-between;
+  gap:15px;
+  padding:0 30px;
 }
 
 .node {
-  padding: 10px;
-  border-radius: 8px;
-  min-width: 120px;
-  text-align: center;
-  box-shadow: 0 3px 10px rgba(0,0,0,0.1);
-  cursor: pointer;
+  flex:1;
+  text-align:center;
+  padding:12px;
+  border-radius:25px;
+  background:white;
+  box-shadow:0 4px 12px rgba(0,0,0,0.08);
+  cursor:pointer;
+  transition:all 0.2s;
+}
+
+.node:hover {
+  transform:scale(1.05);
 }
 
 .active {
-  background: #16a34a;
-  color: white;
+  background:#16a34a;
+  color:white;
+  box-shadow:0 0 15px rgba(22,163,74,0.6);
+}
+
+/* FLOW */
+canvas {
+  margin-top:10px;
 }
 </style>
 </head>
 
 <body>
 
-<h1 id="title">UiPath Transformation Timeline 2026</h1>
-
-<button onclick="year--">-</button>
-<span id="year">2026</span>
-<button onclick="year++">+</button>
+<div class="header">
+  <h1 id="title">UiPath Transformation Timeline 2026</h1>
+  <div class="year-controls">
+    <button onclick="year--">-</button>
+    <span id="year">2026</span>
+    <button onclick="year++">+</button>
+  </div>
+</div>
 
 <div id="timeline" class="container"></div>
-
 <div id="details"></div>
 
-<h2>Architecture Flow</h2>
-<div id="nodes" style="display:flex;justify-content:space-between"></div>
-
+<h2 style="padding-left:30px">Architecture Flow</h2>
+<div id="nodes" class="nodes"></div>
 <canvas id="flow"></canvas>
 
 <script>
+
 let year = 2026;
 
 const base = ["July","August","September","Oct–Nov","Dec"];
@@ -74,77 +132,63 @@ const nodes = [
 ];
 
 let active = [];
-let selected = null;
-
 let data = [
-  {id:1,title:"Stage 1",details:"Core setup & platform"},
-  {id:2,title:"Stage 2",details:"Jira integration"},
-  {id:3,title:"Stage 3",details:"Automation rollout"},
-  {id:4,title:"Stage 4",details:"SAP SF automation"},
-  {id:5,title:"Stage 5",details:"S/4HANA expansion"}
+{ id:1,title:"Core Setup",details:"Platform, SSO, Orchestrator" },
+{ id:2,title:"Jira Integration",details:"Defect tracking + traceability" },
+{ id:3,title:"Automation",details:"Studio rollout + bots" },
+{ id:4,title:"SAP SF",details:"SuccessFactors automation" },
+{ id:5,title:"S/4HANA",details:"Enterprise scaling" }
 ];
 
-function slots() {
-  return base.map((m,i) =>
-    i===4 ? `Dec ${year} → ${year+1}+` : `${m} ${year}`
-  );
+function slots(){
+  return base.map((m,i)=>i===4?`Dec ${year} → ${year+1}+`:`${m} ${year}`);
 }
 
-function drawTimeline() {
-  const el = document.getElementById("timeline");
-  el.innerHTML = "";
-  const s = slots();
+function drawTimeline(){
+  const el=document.getElementById("timeline");
+  el.innerHTML="";
+  const s=slots();
 
-  data.forEach((e,i) => {
-    const d = document.createElement("div");
-    d.className = "card";
+  data.forEach((e,i)=>{
+    let d=document.createElement("div");
+    d.className="card";
 
-    d.innerHTML = `
+    d.innerHTML=`
       <div style="color:#3b82f6;font-weight:bold">${s[i]}</div>
       <h3>${e.title}</h3>
       <p>${e.details}</p>
     `;
 
-    d.onclick = () => {
-      selected = e;
-      showDetails(i);
-    };
-
+    d.onclick=()=>showDetails(i);
     el.appendChild(d);
   });
 }
 
-function showDetails(index) {
-  const s = slots();
-  document.getElementById("details").innerHTML = `
-    <div style="margin-top:20px;background:white;padding:20px;border-radius:14px">
-      <h2>${data[index].title}</h2>
-      <b>${s[index]}</b>
-      <p>${data[index].details}</p>
+function showDetails(i){
+  const s=slots();
+  document.getElementById("details").innerHTML=`
+    <div class="details">
+      <h2>${data[i].title}</h2>
+      <b>${s[i]}</b>
+      <p>${data[i].details}</p>
       <button onclick="clearDetails()">Close</button>
-    </div>
-  `;
+    </div>`;
 }
 
 function clearDetails(){
-  document.getElementById("details").innerHTML = "";
+  document.getElementById("details").innerHTML="";
 }
 
-function toggle(node){
-  if(active.includes(node)){
-    active = active.filter(x=>x!==node);
-  } else {
-    active.push(node);
-  }
+function toggle(n){
+  active.includes(n) ? active=active.filter(x=>x!==n) : active.push(n);
   drawNodes();
 }
 
 function drawNodes(){
-  const el = document.getElementById("nodes");
+  const el=document.getElementById("nodes");
   el.innerHTML="";
-
   nodes.forEach(n=>{
-    const d=document.createElement("div");
+    let d=document.createElement("div");
     d.className="node "+(active.includes(n)?"active":"");
     d.innerText=n;
     d.onclick=()=>toggle(n);
@@ -153,23 +197,22 @@ function drawNodes(){
 }
 
 function updateHeader(){
-  document.getElementById("year").innerText = year;
-  document.getElementById("title").innerText =
-    "UiPath Transformation Timeline " + year;
+  document.getElementById("year").innerText=year;
+  document.getElementById("title").innerText="UiPath Transformation Timeline "+year;
 }
 
-// canvas flow
-const c = document.getElementById("flow");
-const ctx = c.getContext("2d");
+/* FLOW */
+const c=document.getElementById("flow");
+const ctx=c.getContext("2d");
 
 function resize(){
-  c.width = window.innerWidth - 60;
-  c.height = 80;
+  c.width=window.innerWidth-60;
+  c.height=80;
 }
 resize();
-window.onresize = resize;
+window.onresize=resize;
 
-let offset = 0;
+let off=0;
 
 function animate(){
   ctx.clearRect(0,0,c.width,c.height);
@@ -177,17 +220,17 @@ function animate(){
   for(let i=0;i<nodes.length-1;i++){
     if(active.includes(nodes[i]) && active.includes(nodes[i+1])){
       ctx.setLineDash([6,6]);
-      ctx.lineDashOffset = -offset;
-
+      ctx.lineDashOffset=-off;
       ctx.beginPath();
       ctx.moveTo((i/(nodes.length-1))*c.width,40);
       ctx.lineTo(((i+1)/(nodes.length-1))*c.width,40);
       ctx.strokeStyle="#3b82f6";
+      ctx.lineWidth=2;
       ctx.stroke();
     }
   }
 
-  offset++;
+  off++;
   requestAnimationFrame(animate);
 }
 
